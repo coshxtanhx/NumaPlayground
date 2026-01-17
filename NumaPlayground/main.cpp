@@ -1,21 +1,24 @@
 #include <atomic>
 #include <thread>
+#include <array>
 #include <vector>
 #include <memory>
 #include "random.h"
 #include "print.h"
 #include "stopwatch.h"
-#include "numa_array.h"
+#include "my_numa.h"
 
 struct alignas(std::hardware_destructive_interference_size)
 	AtomicInt : std::atomic<int> {};
 
 constexpr auto kArrSize{ 2'000'000 };
 
-auto arr{ std::make_unique<std::array<AtomicInt, kArrSize>>() };
-numa::Array<AtomicInt, kArrSize / 2> narr1{ 0 };
-numa::Array<AtomicInt, kArrSize / 2> narr2{ 1 };
-numa::Array<AtomicInt, kArrSize / 2> narr3{ 0 };
+std::vector<AtomicInt> vec(kArrSize);
+
+using NumaArrPtr = numa::Ptr<std::array<AtomicInt, kArrSize / 2>>;
+NumaArrPtr narr1{ 0 };
+NumaArrPtr narr2{ 1 };
+NumaArrPtr narr3{ 0 };
 
 const auto kNumThread{ static_cast<int>(std::thread::hardware_concurrency()) };
 constexpr auto kLoop{ 360'000'000 };
@@ -23,33 +26,41 @@ constexpr auto kLoop{ 360'000'000 };
 void ThreadFuncA(int thread_id)
 {
 	for (int i = 0; i < kLoop / kNumThread; ++i) {
-		(*arr)[Random::Get(0, arr->size() - 1)] += 1;
+		vec[Random::Get(0, vec.size() - 1)] += 1;
 	}
 }
 
 void ThreadFuncB(int thread_id)
 {
-	std::array<numa::Array<AtomicInt, kArrSize / 2>*, 2> arrs{ &narr1, &narr2 };
+	std::array<NumaArrPtr*, 2> arrs{ &narr1, &narr2 };
 
 	numa::SetCPUAffinity(thread_id);
 
+#if IS_NUMA
 	auto& arr{ *arrs[(thread_id / 10) % 2] };
+#else
+	auto& arr{ *arrs[thread_id % 2] };
+#endif
 
 	for (int i = 0; i < kLoop / kNumThread; ++i) {
-		arr[Random::Get(0, arr.Get().size() - 1)] += 1;
+		(*arr)[Random::Get(0, arr->size() - 1)] += 1;
 	}
 }
 
 void ThreadFuncC(int thread_id)
 {
-	std::array<numa::Array<AtomicInt, kArrSize / 2>*, 2> arrs{ &narr1, &narr3 };
+	std::array<NumaArrPtr*, 2> arrs{ &narr1, &narr3 };
 
 	numa::SetCPUAffinity(thread_id);
 
+#if IS_NUMA
 	auto& arr{ *arrs[(thread_id / 10) % 2] };
+#else
+	auto& arr{ *arrs[thread_id % 2] };
+#endif
 
 	for (int i = 0; i < kLoop / kNumThread; ++i) {
-		arr[Random::Get(0, arr.Get().size() - 1)] += 1;
+		(*arr)[Random::Get(0, arr->size() - 1)] += 1;
 	}
 }
 
@@ -102,23 +113,25 @@ int main()
 	compat::Print("\n");
 
 	for (int i = 0; i < 5; ++i) {
-		auto r = Random::Get(0, 4);
-		auto id = Random::Get(0, 5999);
+		auto r = Random::Get(0, 3);
+		auto id = Random::Get(0, kArrSize - 1);
 
 		switch (r) {
 			case 0:
-				compat::Print("{} ", (*arr)[id].load());
+				compat::Print("{} ", vec[id].load());
 				break;
 			case 1:
-				compat::Print("{} ", narr1[id / 2].load());
+				compat::Print("{} ", (*narr1)[id / 2].load());
 				break;
 			case 2:
-				compat::Print("{} ", narr2[id / 2].load());
+				compat::Print("{} ", (*narr2)[id / 2].load());
 				break;
 			case 3:
-				compat::Print("{} ", narr3[id / 2].load());
+				compat::Print("{} ", (*narr3)[id / 2].load());
 				break;
 		}
 	}
 	compat::Print("\n");
+	compat::Print("Press Enter Key to Quit.\n");
+	getchar();
 }
