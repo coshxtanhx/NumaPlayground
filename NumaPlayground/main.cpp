@@ -29,7 +29,7 @@ void ThreadFuncA(int thread_id)
 
 void ThreadFuncB(int thread_id)
 {
-	std::array<numa::Array<AtomicInt, 3000>*, 2> arrs{ &narr1, &narr2 };
+	std::array<numa::Array<AtomicInt, kArrSize / 2>*, 2> arrs{ &narr1, &narr2 };
 
 	numa::SetCPUAffinity(thread_id);
 
@@ -42,7 +42,7 @@ void ThreadFuncB(int thread_id)
 
 void ThreadFuncC(int thread_id)
 {
-	std::array<numa::Array<AtomicInt, 3000>*, 2> arrs{ &narr1, &narr3 };
+	std::array<numa::Array<AtomicInt, kArrSize / 2>*, 2> arrs{ &narr1, &narr3 };
 
 	numa::SetCPUAffinity(thread_id);
 
@@ -107,7 +107,7 @@ int main()
 
 		switch (r) {
 			case 0:
-				compat::Print("{} ", arr[id].load());
+				compat::Print("{} ", (*arr)[id].load());
 				break;
 			case 1:
 				compat::Print("{} ", narr1[id / 2].load());
