@@ -24,7 +24,7 @@ namespace numa {
 
 		void Init(int numa_node) {
 		#if IS_NUMA
-			arr_ = reinterpret_cast<void*>(numa_alloc_onnode(sizeof(ArrayT), numa_node));
+			arr_ = reinterpret_cast<ArrayT*>(numa_alloc_onnode(sizeof(ArrayT), numa_node));
 		#else
 			arr_ = new ArrayT;
 		#endif
