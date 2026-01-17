@@ -11,14 +11,6 @@ set(SOURCES
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
 add_compile_options(-Wno-interference-size -Wno-volatile)
 
-find_library(NUMA_LIB numactl)
-
-if(NUMA_LIB)
-    target_link_libraries(my_numa_app PRIVATE ${NUMA_LIB})
-else()
-    message(FATAL_ERROR "libnuma (numactl) not found!")
-endif()
-
 add_executable(NPG ${SOURCES})
 
 target_link_libraries(NPG PRIVATE /usr/lib/x86_64-linux-gnu/libnuma.so)
