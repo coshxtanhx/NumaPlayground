@@ -1,6 +1,7 @@
 #include <atomic>
 #include <thread>
 #include <vector>
+#include <memory>
 #include "random.h"
 #include "print.h"
 #include "stopwatch.h"
@@ -9,10 +10,12 @@
 struct alignas(std::hardware_destructive_interference_size)
 	AtomicInt : std::atomic<int> {};
 
-std::array<AtomicInt, 6000> arr;
-numa::Array<AtomicInt, 3000> narr1{ 0 };
-numa::Array<AtomicInt, 3000> narr2{ 1 };
-numa::Array<AtomicInt, 3000> narr3{ 0 };
+constexpr auto kArrSize{ 2'000'000 };
+
+auto arr{ std::make_unique<std::array<AtomicInt, kArrSize>>() };
+numa::Array<AtomicInt, kArrSize / 2> narr1{ 0 };
+numa::Array<AtomicInt, kArrSize / 2> narr2{ 1 };
+numa::Array<AtomicInt, kArrSize / 2> narr3{ 0 };
 
 const auto kNumThread{ static_cast<int>(std::thread::hardware_concurrency()) };
 constexpr auto kLoop{ 360'000'000 };
@@ -20,7 +23,7 @@ constexpr auto kLoop{ 360'000'000 };
 void ThreadFuncA(int thread_id)
 {
 	for (int i = 0; i < kLoop / kNumThread; ++i) {
-		arr[Random::Get(0, arr.size() - 1)] += 1;
+		(*arr)[Random::Get(0, arr->size() - 1)] += 1;
 	}
 }
 
