@@ -29,7 +29,7 @@ void ThreadFuncB(int thread_id)
 
 	numa::SetCPUAffinity(thread_id);
 
-	auto& arr{ *arrs[thread_id % 2]};
+	auto& arr{ *arrs[(thread_id / 10) % 2] };
 
 	for (int i = 0; i < kLoop / kNumThread; ++i) {
 		arr[Random::Get(0, arr.Get().size() - 1)] += 1;
