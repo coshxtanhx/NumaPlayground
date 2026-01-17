@@ -20,3 +20,5 @@ else()
 endif()
 
 add_executable(NPG ${SOURCES})
+
+target_link_libraries(NPG PRIVATE /usr/lib/x86_64-linux-gnu/libnuma.so)
